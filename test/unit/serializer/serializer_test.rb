@@ -12,9 +12,11 @@ class SerializerTest < ActionDispatch::IntegrationTest
     JSONAPI.configuration.json_key_format = :camelized_key
     JSONAPI.configuration.route_format = :camelized_route
     JSONAPI.configuration.always_include_to_one_linkage_data = false
+    JSONAPI.configuration.always_include_to_many_linkage_data = false
   end
 
   def after_teardown
+    JSONAPI.configuration.always_include_to_many_linkage_data = false
     JSONAPI.configuration.always_include_to_one_linkage_data = false
     JSONAPI.configuration.json_key_format = :underscored_key
   end
@@ -966,6 +968,117 @@ class SerializerTest < ActionDispatch::IntegrationTest
     )
   ensure
     JSONAPI.configuration.always_include_to_one_linkage_data = false
+  end
+
+  def test_serializer_array_of_resources_always_include_to_many_linkage_data
+
+    posts = []
+    Post.find(1, 2).each do |post|
+      posts.push PostResource.new(post, nil)
+    end
+
+    JSONAPI.configuration.always_include_to_many_linkage_data = true
+
+    assert_hash_equals(
+      {
+        data: [
+          {
+            type: 'posts',
+            id: '1',
+            attributes: {
+              title: 'New post',
+              body: 'A body!!!',
+              subject: 'New post'
+            },
+            links: {
+              self: '/posts/1'
+            },
+            relationships: {
+              section: {
+                links: {
+                  self: '/posts/1/relationships/section',
+                  related: '/posts/1/section'
+                }
+              },
+              author: {
+                links: {
+                  self: '/posts/1/relationships/author',
+                  related: '/posts/1/author'
+                }
+              },
+              tags: {
+                links: {
+                  self: '/posts/1/relationships/tags',
+                  related: '/posts/1/tags'
+                },
+                data: [
+                  {type: 'tags', id: '1'},
+                  {type: 'tags', id: '2'},
+                  {type: 'tags', id: '3'},
+                ]
+              },
+              comments: {
+                links: {
+                  self: '/posts/1/relationships/comments',
+                  related: '/posts/1/comments'
+                },
+                data: [
+                  {type: 'comments', id: '1'},
+                  {type: 'comments', id: '2'}
+                ]
+              }
+            }
+          },
+          {
+            type: 'posts',
+            id: '2',
+            attributes: {
+              title: 'JR Solves your serialization woes!',
+              body: 'Use JR',
+              subject: 'JR Solves your serialization woes!'
+            },
+            links: {
+              self: '/posts/2'
+            },
+            relationships: {
+              section: {
+                links: {
+                  self: '/posts/2/relationships/section',
+                  related: '/posts/2/section'
+                }
+              },
+              author: {
+                links: {
+                  self: '/posts/2/relationships/author',
+                  related: '/posts/2/author'
+                }
+              },
+              tags: {
+                links: {
+                  self: '/posts/2/relationships/tags',
+                  related: '/posts/2/tags'
+                },
+                data: [
+                  {type: 'tags', id: '5'},
+                ]
+              },
+              comments: {
+                links: {
+                  self: '/posts/2/relationships/comments',
+                  related: '/posts/2/comments'
+                },
+                data: [
+                  {type: 'comments', id: '3'}
+                ]
+              }
+            }
+          }
+        ]
+      },
+      JSONAPI::ResourceSerializer.new(PostResource).serialize_to_hash(posts)
+    )
+  ensure
+    JSONAPI.configuration.always_include_to_many_linkage_data = false
   end
 
   def test_serializer_array_of_resources

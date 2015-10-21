@@ -71,7 +71,6 @@ module JSONAPI
 
       # Resource Linkage
       # Controls the serialization of resource linkage for non compound documents
-      # NOTE: always_include_to_many_linkage_data is not currently implemented
       self.always_include_to_one_linkage_data = false
       self.always_include_to_many_linkage_data = false
     end
